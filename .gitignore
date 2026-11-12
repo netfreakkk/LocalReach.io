@@ -1,0 +1,44 @@
+# Environment & Secrets (CRITICAL: Never commit API keys or credentials)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.secret
+credentials.json
+
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+.pytest_cache/
+
+# Video, Audio, and Render Cache (Heavy Media Files)
+downloads/
+exports/
+temp/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.wav
+*.mp3
+*.aac
+*.m4a
+*.ass
+*.srt
+*.jpg
+*.jpeg
+*.png
+
+# IDEs & System Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

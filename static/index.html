@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScaleReach.ai — Local AI Shorts & Reels Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glow-button {
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glow-button:hover {
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.5);
+      transform: translateY(-1px);
+    }
+    .step-active {
+      border-color: #818cf8;
+      background: rgba(99, 102, 241, 0.15);
+      color: #e0e7ff;
+    }
+    .step-done {
+      border-color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      color: #a7f3d0;
+    }
+    .step-pending {
+      border-color: #27272a;
+      background: #09090b;
+      color: #71717a;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-fuchsia-500 flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-500/20">
+          ⚡
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">ScaleReach</span>
+          <span class="text-xs uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 ml-1.5 font-bold">Local Pro</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
+          RTX 4050 NVENC Active
+        </span>
+        <span class="text-xs font-medium text-indigo-400 bg-indigo-950/40 border border-indigo-800/50 px-2.5 py-1 rounded-md">
+          Gemini 3.8 Flash Connected
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-6xl mx-auto px-6 py-10 flex-1 w-full space-y-8">
+
+    <!-- Hero Header -->
+    <div class="text-center space-y-2">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">
+        Turn Any Video Into <span class="bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">Viral Shorts & Hotspots</span>
+      </h1>
+      <p class="text-zinc-400 max-w-2xl mx-auto text-sm md:text-base">
+        Smart face-tracking reframer, dynamic animated karaoke captions, and algorithm-optimized SEO metadata — running on your local machine.
+      </p>
+    </div>
+
+    <!-- Input Generator Card -->
+    <div class="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur space-y-6">
+      
+      <!-- Source Toggle: URL vs Upload File -->
+      <div class="flex border-b border-zinc-800 pb-4 space-x-4">
+        <button type="button" onclick="switchTab('url')" id="tab-url" class="flex items-center space-x-2 text-sm font-bold text-indigo-400 border-b-2 border-indigo-500 pb-2 transition">
+          <span>🔗</span>
+          <span>YouTube URL</span>
+        </button>
+        <button type="button" onclick="switchTab('upload')" id="tab-upload" class="flex items-center space-x-2 text-sm font-bold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-2 transition">
+          <span>📁</span>
+          <span>Upload Local Video</span>
+        </button>
+      </div>
+
+      <!-- YouTube URL Input Container -->
+      <div id="urlInputContainer" class="space-y-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-zinc-300">YouTube Video URL</label>
+        <div class="flex items-center bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus-within:border-indigo-500 transition shadow-inner">
+          <span class="text-zinc-500 mr-3 text-lg">🔗</span>
+          <input 
+            id="videoUrl" 
+            type="url" 
+            placeholder="https://www.youtube.com/watch?v=..." 
+            class="bg-transparent text-white w-full focus:outline-none placeholder-zinc-600 font-medium text-sm md:text-base"
+          />
+        </div>
+      </div>
+
+      <!-- File Upload Container -->
+      <div id="fileInputContainer" class="hidden space-y-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-zinc-300">Upload Video File (.mp4, .mov, .mkv)</label>
+        <div 
+          onclick="document.getElementById('videoFileInput').click()" 
+          id="dropZone" 
+          class="border-2 border-dashed border-zinc-700 hover:border-indigo-500 bg-zinc-950/60 rounded-2xl p-8 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2"
+        >
+          <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xl text-indigo-400">
+            📤
+          </div>
+          <div class="text-sm font-semibold text-zinc-200" id="fileChosenText">Click or drag & drop video file here</div>
+          <div class="text-xs text-zinc-500">Supports MP4, MOV, MKV, AVI, WebM up to 2GB</div>
+          <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="handleFileSelected(event)">
+        </div>
+      </div>
+
+      <!-- Settings Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+        
+        <!-- Reframing Style -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-zinc-300">Smart Reframing Layout</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setStyle('smart')" id="btn-smart" class="style-btn px-3 py-2.5 rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 text-xs font-semibold flex items-center justify-center space-x-1.5 transition">
+              <span>🎯</span>
+              <span>Face Track</span>
+            </button>
+            <button type="button" onclick="setStyle('split')" id="btn-split" class="style-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span>🎙️</span>
+              <span>Podcast Split</span>
+            </button>
+            <button type="button" onclick="setStyle('blur')" id="btn-blur" class="style-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span>🌫️</span>
+              <span>Blur Background</span>
+            </button>
+            <button type="button" onclick="setStyle('center')" id="btn-center" class="style-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span>📐</span>
+              <span>Direct Center</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Clip Count Selector -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-zinc-300">Viral Moments to Extract</label>
+          <div class="grid grid-cols-5 gap-2">
+            <button type="button" onclick="setClipCount(0)" id="clips-auto" class="clip-btn px-2.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1 transition hover:border-zinc-700 col-span-5">
+              <span>🔥</span>
+              <span>Auto (All Video Hotspots & Chapters)</span>
+            </button>
+            <button type="button" onclick="setClipCount(3)" id="clips-3" class="clip-btn px-2 py-2 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1 transition hover:border-zinc-700">
+              <span>⚡ 3</span>
+            </button>
+            <button type="button" onclick="setClipCount(5)" id="clips-5" class="clip-btn px-2 py-2 rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 text-xs font-semibold flex items-center justify-center space-x-1 transition">
+              <span>⭐ 5</span>
+            </button>
+            <button type="button" onclick="setClipCount(8)" id="clips-8" class="clip-btn px-2 py-2 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1 transition hover:border-zinc-700">
+              <span>🚀 8</span>
+            </button>
+            <button type="button" onclick="setClipCount(10)" id="clips-10" class="clip-btn px-2 py-2 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1 transition hover:border-zinc-700">
+              <span>💎 10</span>
+            </button>
+            <button type="button" onclick="setClipCount(12)" id="clips-12" class="clip-btn px-2 py-2 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1 transition hover:border-zinc-700">
+              <span>🏆 12</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Subtitle Color Preset -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-zinc-300">Karaoke Caption Highlight</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setColor('&H0000FFFF&')" id="color-yellow" class="color-btn px-3 py-2.5 rounded-xl border border-yellow-500 bg-yellow-500/10 text-yellow-300 text-xs font-semibold flex items-center justify-center space-x-1.5 transition">
+              <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+              <span>Hormozi Yellow</span>
+            </button>
+            <button type="button" onclick="setColor('&H002EFC2E&')" id="color-green" class="color-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span>Emerald Green</span>
+            </button>
+            <button type="button" onclick="setColor('&H00FFFF00&')" id="color-cyan" class="color-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+              <span>Electric Cyan</span>
+            </button>
+            <button type="button" onclick="setColor('&H002020FF&')" id="color-red" class="color-btn px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition hover:border-zinc-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              <span>Crimson Alert</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Button -->
+      <button 
+        id="generateBtn" 
+        onclick="triggerGeneration()" 
+        class="w-full py-4 rounded-xl font-extrabold text-white glow-button text-base flex items-center justify-center space-x-2 shadow-lg"
+      >
+        <span id="generateBtnText">⚡ Generate 5 Viral Clips</span>
+      </button>
+
+    </div>
+
+    <!-- DUAL PROGRESS DASHBOARD (Step-by-Step + Sub-progress) -->
+    <div id="progressCard" class="hidden bg-zinc-900/90 border border-indigo-500/30 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl backdrop-blur">
+      
+      <!-- 5-Step Pipeline Chips -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs font-semibold">
+        <div id="step-chip-1" class="step-chip p-2.5 rounded-xl border step-pending flex items-center space-x-2">
+          <span class="step-num w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">1</span>
+          <span class="truncate">Ingestion</span>
+        </div>
+        <div id="step-chip-2" class="step-chip p-2.5 rounded-xl border step-pending flex items-center space-x-2">
+          <span class="step-num w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">2</span>
+          <span class="truncate">AI Hooks</span>
+        </div>
+        <div id="step-chip-3" class="step-chip p-2.5 rounded-xl border step-pending flex items-center space-x-2">
+          <span class="step-num w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">3</span>
+          <span class="truncate">Subtitles</span>
+        </div>
+        <div id="step-chip-4" class="step-chip p-2.5 rounded-xl border step-pending flex items-center space-x-2">
+          <span class="step-num w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">4</span>
+          <span class="truncate">NVENC Render</span>
+        </div>
+        <div id="step-chip-5" class="step-chip p-2.5 rounded-xl border step-pending flex items-center space-x-2">
+          <span class="step-num w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px]">5</span>
+          <span class="truncate">Post Pack</span>
+        </div>
+      </div>
+
+      <!-- PRIMARY PROGRESS BAR (Overall) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
+          <span class="text-zinc-300 flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></span>
+            <span id="primaryStepLabel">Overall Progress</span>
+          </span>
+          <span id="overallPercent" class="font-mono text-indigo-400">10%</span>
+        </div>
+        <div class="w-full bg-zinc-950 rounded-full h-3 overflow-hidden border border-zinc-800/80 p-0.5">
+          <div id="primaryProgressBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-300" style="width: 10%"></div>
+        </div>
+      </div>
+
+      <!-- SECONDARY PROGRESS BAR (Active Stage Detail) -->
+      <div class="space-y-2 bg-zinc-950/70 border border-zinc-800/70 p-4 rounded-xl">
+        <div class="flex items-center justify-between text-xs gap-3">
+          <span id="secondaryMessage" class="font-mono tabular-nums font-medium text-zinc-300 min-w-0 flex-1 truncate">Preparing download...</span>
+          <span id="secondaryPercent" class="font-mono tabular-nums font-bold text-emerald-400 shrink-0">0%</span>
+        </div>
+        <div class="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
+          <div id="secondaryProgressBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-200" style="width: 0%"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-4 gap-3">
+        <div>
+          <h2 class="text-2xl font-bold tracking-tight" id="resultTitle">Generated Clips</h2>
+          <p class="text-xs text-zinc-400 mt-1" id="resultSummary"></p>
+          <div id="resultFolderBadge" class="mt-2 inline-flex items-center space-x-1.5 text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-1 rounded-md">
+            <span>📁 Saved to:</span> <span id="resultFolderPath" class="font-bold">exports/</span>
+          </div>
+        </div>
+        <span class="text-xs font-semibold px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg flex items-center space-x-1.5 self-start sm:self-auto">
+          <span>✓</span> <span>Batch Render Complete</span>
+        </span>
+      </div>
+
+      <!-- Clips Grid -->
+      <div id="clipsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+  </main>
+
+  <script>
+    let activeTab = "url";
+    let selectedStyle = "smart";
+    let selectedColor = "&H0000FFFF&";
+    let selectedClipCount = 5;
+    let activeJobId = null;
+    let pollInterval = null;
+    let selectedFile = null;
+
+    function setClipCount(count) {
+      selectedClipCount = count;
+      document.querySelectorAll(".clip-btn").forEach(btn => {
+        btn.classList.remove("border-indigo-500", "bg-indigo-500/10", "text-indigo-300");
+        btn.classList.add("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+      });
+      const id = count === 0 ? "clips-auto" : `clips-${count}`;
+      const activeBtn = document.getElementById(id);
+      if (activeBtn) {
+        activeBtn.classList.remove("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+        activeBtn.classList.add("border-indigo-500", "bg-indigo-500/10", "text-indigo-300");
+      }
+      updateButtonText();
+    }
+
+    function updateButtonText() {
+      const label = document.getElementById("generateBtnText");
+      if (!label) return;
+      if (selectedClipCount === 0) {
+        label.innerText = "⚡ Extract All Hotspots & Generate Shorts";
+      } else {
+        label.innerText = `⚡ Generate ${selectedClipCount} Viral Clips`;
+      }
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      if (tab === "url") {
+        document.getElementById("tab-url").classList.add("text-indigo-400", "border-indigo-500");
+        document.getElementById("tab-url").classList.remove("text-zinc-400", "border-transparent");
+        document.getElementById("tab-upload").classList.remove("text-indigo-400", "border-indigo-500");
+        document.getElementById("tab-upload").classList.add("text-zinc-400", "border-transparent");
+        document.getElementById("urlInputContainer").classList.remove("hidden");
+        document.getElementById("fileInputContainer").classList.add("hidden");
+      } else {
+        document.getElementById("tab-upload").classList.add("text-indigo-400", "border-indigo-500");
+        document.getElementById("tab-upload").classList.remove("text-zinc-400", "border-transparent");
+        document.getElementById("tab-url").classList.remove("text-indigo-400", "border-indigo-500");
+        document.getElementById("tab-url").classList.add("text-zinc-400", "border-transparent");
+        document.getElementById("fileInputContainer").classList.remove("hidden");
+        document.getElementById("urlInputContainer").classList.add("hidden");
+      }
+    }
+
+    function handleFileSelected(event) {
+      const file = event.target.files[0];
+      if (file) {
+        selectedFile = file;
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        document.getElementById("fileChosenText").innerHTML = `✓ Selected: <strong class="text-white">${file.name}</strong> (${sizeMb} MB)`;
+      }
+    }
+
+    function setStyle(style) {
+      selectedStyle = style;
+      document.querySelectorAll(".style-btn").forEach(btn => {
+        btn.classList.remove("border-indigo-500", "bg-indigo-500/10", "text-indigo-300");
+        btn.classList.add("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+      });
+      const activeBtn = document.getElementById("btn-" + style);
+      activeBtn.classList.remove("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+      activeBtn.classList.add("border-indigo-500", "bg-indigo-500/10", "text-indigo-300");
+    }
+
+    function setColor(color) {
+      selectedColor = color;
+      document.querySelectorAll(".color-btn").forEach(btn => {
+        btn.classList.remove("border-yellow-500", "bg-yellow-500/10", "text-yellow-300");
+        btn.classList.add("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+      });
+      const mapping = {
+        "&H0000FFFF&": "color-yellow",
+        "&H002EFC2E&": "color-green",
+        "&H00FFFF00&": "color-cyan",
+        "&H002020FF&": "color-red"
+      };
+      const activeBtn = document.getElementById(mapping[color]);
+      activeBtn.classList.remove("border-zinc-800", "bg-zinc-950/60", "text-zinc-400");
+      activeBtn.classList.add("border-yellow-500", "bg-yellow-500/10", "text-yellow-300");
+    }
+
+    function updateStepChips(step) {
+      for (let i = 1; i <= 5; i++) {
+        const chip = document.getElementById(`step-chip-${i}`);
+        chip.className = "step-chip p-2.5 rounded-xl border flex items-center space-x-2 " + 
+          (i < step ? "step-done" : (i === step ? "step-active" : "step-pending"));
+      }
+    }
+
+    async function triggerGeneration() {
+      const btn = document.getElementById("generateBtn");
+
+      if (activeTab === "url") {
+        const url = document.getElementById("videoUrl").value.trim();
+        if (!url) {
+          alert("Please enter a YouTube video URL!");
+          return;
+        }
+        startJobWithUrl(url);
+      } else {
+        if (!selectedFile) {
+          alert("Please select or drop a video file!");
+          return;
+        }
+        startJobWithUpload(selectedFile);
+      }
+    }
+
+    function showProgressUI() {
+      const btn = document.getElementById("generateBtn");
+      btn.disabled = true;
+      btn.classList.add("opacity-50", "cursor-not-allowed");
+
+      document.getElementById("progressCard").classList.remove("hidden");
+      document.getElementById("resultsSection").classList.add("hidden");
+      updateStepChips(1);
+    }
+
+    async function startJobWithUrl(url) {
+      showProgressUI();
+      document.getElementById("primaryStepLabel").innerText = "Step 1/5: Ingestion & Analysis Proxy";
+      document.getElementById("primaryProgressBar").style.width = "10%";
+      document.getElementById("overallPercent").innerText = "10%";
+      document.getElementById("secondaryMessage").innerText = "Connecting to YouTube stream via yt-dlp...";
+      document.getElementById("secondaryProgressBar").style.width = "10%";
+      document.getElementById("secondaryPercent").innerText = "10%";
+
+      try {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: url,
+            style: selectedStyle,
+            highlight_color: selectedColor,
+            clip_count: selectedClipCount
+          })
+        });
+        const data = await res.json();
+        activeJobId = data.job_id;
+        startPolling(activeJobId);
+      } catch (err) {
+        alert("Error starting generation: " + err);
+        resetBtn();
+      }
+    }
+
+    async function startJobWithUpload(file) {
+      showProgressUI();
+      document.getElementById("primaryStepLabel").innerText = "Uploading Video File...";
+      document.getElementById("primaryProgressBar").style.width = "10%";
+      document.getElementById("overallPercent").innerText = "10%";
+
+      const formData = new FormData();
+      formData.append("video_file", file);
+      formData.append("style", selectedStyle);
+      formData.append("highlight_color", selectedColor);
+      formData.append("clip_count", selectedClipCount);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload-and-generate", true);
+
+      // Track secondary upload progress
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+          const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+          document.getElementById("secondaryPercent").innerText = pct + "%";
+          document.getElementById("secondaryProgressBar").style.width = pct + "%";
+          document.getElementById("secondaryMessage").innerText = `Uploading file: ${pct}% (${loadedMb}MB / ${totalMb}MB)`;
+        }
+      };
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
+          activeJobId = data.job_id;
+          startPolling(activeJobId);
+        } else {
+          alert("Upload failed: " + xhr.statusText);
+          resetBtn();
+        }
+      };
+
+      xhr.onerror = function() {
+        alert("Network error during file upload.");
+        resetBtn();
+      };
+
+      xhr.send(formData);
+    }
+
+    function resetBtn() {
+      const btn = document.getElementById("generateBtn");
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+      updateButtonText();
+    }
+
+    function startPolling(jobId) {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch("/api/status/" + jobId);
+          const data = await res.json();
+
+          // Update Steps and Progress Bars
+          const currentStep = data.current_step || 1;
+          updateStepChips(currentStep);
+
+          document.getElementById("primaryStepLabel").innerText = data.step_name || "Processing...";
+          document.getElementById("overallPercent").innerText = Math.round(data.overall_progress || 10) + "%";
+          document.getElementById("primaryProgressBar").style.width = (data.overall_progress || 10) + "%";
+
+          let secMsg = data.secondary_message || "Working...";
+          // Stabilize fluctuating DASH download total size estimate
+          const dlMatch = secMsg.match(/Downloading 1080p:\s*([\d\.]+)%\s*\(([\d\.]+)MB\s*\/\s*([\d\.]+)MB\)/);
+          if (dlMatch) {
+            const dlMb = parseFloat(dlMatch[2]);
+            const totalMb = parseFloat(dlMatch[3]);
+            if (!window.lockedTotalMb || Math.abs(window.lockedTotalMb - totalMb) > 120) {
+              window.lockedTotalMb = totalMb;
+            }
+            const totalStr = window.lockedTotalMb >= 1000 
+              ? (window.lockedTotalMb / 1024).toFixed(2) + " GB" 
+              : Math.round(window.lockedTotalMb) + " MB";
+            const dlStr = dlMb >= 1000 
+              ? (dlMb / 1024).toFixed(2) + " GB" 
+              : dlMb.toFixed(1) + " MB";
+            secMsg = `Downloading 1080p: ${dlStr} / ~${totalStr}`;
+          }
+
+          document.getElementById("secondaryMessage").innerText = secMsg;
+          document.getElementById("secondaryPercent").innerText = Math.round(data.secondary_progress || 0) + "%";
+          document.getElementById("secondaryProgressBar").style.width = (data.secondary_progress || 0) + "%";
+
+          if (data.status === "completed") {
+            clearInterval(pollInterval);
+            renderResults(data);
+            resetBtn();
+          } else if (data.status === "failed") {
+            clearInterval(pollInterval);
+            alert("Generation failed: " + data.secondary_message);
+            resetBtn();
+          }
+        } catch (err) {
+          console.error("Polling error", err);
+        }
+      }, 2000);
+    }
+
+    function renderResults(jobData) {
+      document.getElementById("progressCard").classList.add("hidden");
+      document.getElementById("resultsSection").classList.remove("hidden");
+
+      const results = jobData.results;
+      document.getElementById("resultTitle").innerText = results.title || "Generated Viral Clips";
+      document.getElementById("resultSummary").innerText = results.summary || "";
+
+      // Display formatted folder path
+      const exportBase = jobData.export_dir || `/exports/${jobData.job_id}`;
+      const displayPath = exportBase.replace(/^\/exports\//, "exports/");
+      document.getElementById("resultFolderPath").innerText = displayPath;
+
+      const grid = document.getElementById("clipsGrid");
+      grid.innerHTML = "";
+
+      results.clips.forEach(clip => {
+        const videoSrc = `${exportBase}/${clip.filename}`;
+        const card = document.createElement("div");
+        card.className = "bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col shadow-lg";
+
+        card.innerHTML = `
+          <!-- 9:16 Video Player -->
+          <div class="relative bg-black aspect-[9/16] w-full">
+            <video src="${videoSrc}" controls preload="metadata" class="w-full h-full object-cover"></video>
+            <div class="absolute top-3 left-3 bg-indigo-600/90 backdrop-blur text-white font-black text-xs px-2.5 py-1 rounded-md shadow">
+              ★ Score: ${clip.viral_score}/100
+            </div>
+            <div class="absolute top-3 right-3 bg-zinc-900/80 backdrop-blur text-zinc-300 font-bold text-xs px-2 py-1 rounded-md">
+              #${clip.clip_number}
+            </div>
+          </div>
+
+          <!-- Metadata & Actions -->
+          <div class="p-4 space-y-3 flex-1 flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Burned Hook</span>
+              <p class="font-bold text-xs text-white line-clamp-1">${clip.hook_banner}</p>
+            </div>
+
+            <div class="space-y-1.5 pt-2">
+              <button onclick="copyToClipboard('${escapeJs(clip.yt_shorts_title)}', this)" class="w-full text-xs font-semibold py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg flex items-center justify-center space-x-1 transition">
+                <span>📋</span> <span>Copy Shorts Title</span>
+              </button>
+              <button onclick="copyToClipboard('${escapeJs(clip.ig_caption)}', this)" class="w-full text-xs font-semibold py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg flex items-center justify-center space-x-1 transition">
+                <span>📋</span> <span>Copy IG/FB SEO Caption</span>
+              </button>
+              <button onclick="copyToClipboard('${escapeJs(clip.yt_studio_tags.join(', '))}', this)" class="w-full text-xs font-semibold py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg flex items-center justify-center space-x-1 transition">
+                <span>📋</span> <span>Copy YT Studio Tags</span>
+              </button>
+              <a href="${videoSrc}" download class="w-full text-xs font-bold py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center space-x-1 transition block text-center">
+                <span>⬇️</span> <span>Download 9:16 MP4</span>
+              </a>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function escapeJs(str) {
+      return (str || "").replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text);
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "<span>✓</span> <span>Copied!</span>";
+      btn.classList.add("bg-emerald-600", "text-white");
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove("bg-emerald-600", "text-white");
+      }, 1500);
+    }
+  </script>
+
+</body>
+</html>
