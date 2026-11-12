@@ -58,7 +58,8 @@ def run_pipeline(
             proxy_mp4,
             model_name=model,
             video_title=meta['title'],
-            force_local=force_local
+            force_local=force_local,
+            metadata=meta
         )
         print(f"  [✓] Found {len(analysis.clips)} viral hooks! Theme: {analysis.dominant_theme}")
         for c in analysis.clips:
@@ -67,15 +68,25 @@ def run_pipeline(
         # Step 3 & 4: Compositor & Smart Reframing
         print("\n[Step 3/5] Slicing, Reframing & Rendering 9:16 Vertical Videos...")
         rendered_files = []
+        successful_clips = []
         for c in analysis.clips:
-            out_file = render_vertical_clip(
-                master_video_path=master_mp4,
-                clip=c,
-                output_dir=export_dir,
-                reframing_style=style,
-                highlight_color=highlight_color
-            )
-            rendered_files.append(out_file)
+            try:
+                out_file = render_vertical_clip(
+                    master_video_path=master_mp4,
+                    clip=c,
+                    output_dir=export_dir,
+                    reframing_style=style,
+                    highlight_color=highlight_color
+                )
+                rendered_files.append(out_file)
+                successful_clips.append(c)
+            except Exception as e:
+                print(f"  [!] Warning: Clip #{c.clip_number} failed during render ({e}). Skipping clip.")
+
+        if not successful_clips:
+            raise RuntimeError("All clip renders failed. Check source video format.")
+
+        analysis.clips = successful_clips
 
         # Step 5: Post Pack Metadata Generation
         print("\n[Step 4/5] Generating Algorithm-Hijack Metadata & POST_PACK.md...")

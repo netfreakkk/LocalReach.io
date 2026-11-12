@@ -170,6 +170,7 @@ def process_video_pipeline(
         job["step_name"] = "Step 3/5: Face Reframing & RTX NVENC Rendering"
         total_clips = len(analysis.clips)
 
+        successful_clips = []
         for idx, c in enumerate(analysis.clips):
             clip_num = idx + 1
             base_overall = 50 + int((idx / total_clips) * 40)
@@ -179,14 +180,25 @@ def process_video_pipeline(
                 job["secondary_message"] = f"Clip #{clip_num}/{total_clips} — {sub_msg}"
                 job["overall_progress"] = round(base_overall + (sub_pct / 100.0) * (40 / total_clips), 1)
 
-            render_vertical_clip(
-                master_video_path=master_mp4,
-                clip=c,
-                output_dir=export_dir,
-                reframing_style=style,
-                highlight_color=highlight_color,
-                progress_callback=clip_render_progress
-            )
+            try:
+                render_vertical_clip(
+                    master_video_path=master_mp4,
+                    clip=c,
+                    output_dir=export_dir,
+                    reframing_style=style,
+                    highlight_color=highlight_color,
+                    progress_callback=clip_render_progress
+                )
+                successful_clips.append(c)
+            except Exception as clip_err:
+                print(f"  [!] Warning: Clip #{clip_num} failed to render ({clip_err}). Skipping clip.")
+                job["secondary_message"] = f"Clip #{clip_num}/{total_clips} skipped ({str(clip_err)[:45]})..."
+
+        if not successful_clips:
+            raise RuntimeError("All clip renders failed. Check source video format.")
+
+        analysis.clips = successful_clips
+        job["total_clips"] = len(successful_clips)
 
         # ==========================================
         # STEP 5: POST PACK & PACKAGING (90% - 100% Overall)
@@ -202,8 +214,8 @@ def process_video_pipeline(
         job["status"] = "completed"
         job["overall_progress"] = 100
         job["secondary_progress"] = 100
-        job["step_name"] = f"✓ Completed! {len(analysis.clips)} Viral Clips Ready"
-        job["secondary_message"] = f"All {len(analysis.clips)} clips rendered and organized in exports/{date_str}/{folder_name}!"
+        job["step_name"] = f"✓ Completed! {len(successful_clips)} Viral Clips Ready"
+        job["secondary_message"] = f"All {len(successful_clips)} clips rendered and organized in exports/{date_str}/{folder_name}!"
         job["export_dir"] = rel_url
         
         meta_file = export_dir / "metadata.json"

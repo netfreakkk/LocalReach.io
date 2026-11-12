@@ -42,6 +42,8 @@ def analyze_video_moments(
                 hotspot_hints.append(f"  • {ch['start_seconds']}s - {ch['end_seconds']}s - {ch['reason']}")
 
     hotspot_context_str = "\n".join(hotspot_hints) if hotspot_hints else "No YouTube heatmap available. Analyze audiovisual energy peaks."
+    max_duration = float(metadata.get("duration", 0)) if metadata and "duration" in metadata else 0.0
+    duration_constraint = f"CRITICAL DURATION BOUNDARY: Total video length is {max_duration:.1f}s. Every clip MUST have start_seconds < {max_duration - 10.0:.1f}s and end_seconds <= {max_duration:.1f}s. NEVER output timestamps exceeding {max_duration:.1f}s." if max_duration > 0 else ""
 
     # Fallback to local mode if explicitly requested or key is empty
     if force_local or not key or key.strip() == "":
@@ -85,6 +87,8 @@ def analyze_video_moments(
         prompt = f"""
     You are an elite short-form video producer and algorithm engineer (LocalReach.io & OpusClip).
     Watch and listen to this entire video to extract EXACTLY {target_clips} of the MOST ENGAGING, completely self-contained viral moments (35 to 55 seconds each).
+
+    {duration_constraint}
 
     {hotspot_context_str}
 
@@ -140,9 +144,20 @@ def analyze_video_moments(
 
                 result = VideoAnalysisResult.model_validate_json(response.text)
                 
-                # Post-process: Filter any overlapping clips
+                # Post-process: Filter out-of-bounds and overlapping clips
                 filtered_clips = []
                 for c in sorted(result.clips, key=lambda x: x.viral_score, reverse=True):
+                    # Validate boundary against total video duration
+                    if c.start_seconds < 0.0:
+                        continue
+                    if max_duration > 0:
+                        if c.start_seconds >= (max_duration - 10.0):
+                            continue
+                        if c.end_seconds > max_duration:
+                            c.end_seconds = max_duration
+                    if (c.end_seconds - c.start_seconds) < 10.0:
+                        continue
+
                     overlaps = False
                     for f in filtered_clips:
                         # Discard only if collision within 10s
