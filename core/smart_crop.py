@@ -20,36 +20,37 @@ def analyze_faces_in_video(video_path: Path, sample_fps: float = 2.0) -> dict:
     if not cap.isOpened():
         return {"mode": "center", "primary_x": 0.5, "secondary_x": None, "face_count": 0}
 
-    video_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    frame_interval = max(1, int(video_fps / sample_fps))
+    try:
+        video_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        frame_interval = max(1, int(video_fps / sample_fps))
 
-    face_cascade = cv2.CascadeClassifier(str(CASCADE_PATH))
-    face_x_coords = []
-    
-    frame_idx = 0
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+        face_cascade = cv2.CascadeClassifier(str(CASCADE_PATH))
+        face_x_coords = []
+        
+        frame_idx = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        if frame_idx % frame_interval == 0:
-            h, w = frame.shape[:2]
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            # Small scale for instant detection
-            small = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
-            faces = face_cascade.detectMultiScale(small, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+            if frame_idx % frame_interval == 0:
+                h, w = frame.shape[:2]
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                # Small scale for instant detection
+                small = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
+                faces = face_cascade.detectMultiScale(small, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
 
-            if len(faces) > 0:
-                frame_faces = []
-                for (fx, fy, fw, fh) in faces:
-                    # fx, fw are on 0.5 scaled image
-                    orig_center_x = (fx * 2 + fw) / float(w)
-                    frame_faces.append(orig_center_x)
-                face_x_coords.append(frame_faces)
+                if len(faces) > 0:
+                    frame_faces = []
+                    for (fx, fy, fw, fh) in faces:
+                        # fx, fw are on 0.5 scaled image
+                        orig_center_x = (fx * 2 + fw) / float(w)
+                        frame_faces.append(orig_center_x)
+                    face_x_coords.append(frame_faces)
 
-        frame_idx += 1
-
-    cap.release()
+            frame_idx += 1
+    finally:
+        cap.release()
 
     if not face_x_coords:
         return {"mode": "center", "primary_x": 0.5, "secondary_x": None, "face_count": 0}
@@ -113,8 +114,8 @@ def build_reframing_filter(
         x2_norm = analysis.get("secondary_x", 0.75) if analysis.get("secondary_x") is not None else 0.75
         return (
             f"[0:v]split=2[sp1][sp2]; "
-            f"[sp1]crop=w='min(in_w, in_h*1.0)':h='in_h':x='max(0, min(in_w-in_h, in_w*{x1_norm} - in_h/2))':y=0,scale=1080:960[top]; "
-            f"[sp2]crop=w='min(in_w, in_h*1.0)':h='in_h':x='max(0, min(in_w-in_h, in_w*{x2_norm} - in_h/2))':y=0,scale=1080:960[bot]; "
+            f"[sp1]crop=w='min(in_w, in_h*1.0)':h='in_h':x='max(0, min(max(0, in_w-in_h), in_w*{x1_norm} - in_h/2))':y=0,scale=1080:960[top]; "
+            f"[sp2]crop=w='min(in_w, in_h*1.0)':h='in_h':x='max(0, min(max(0, in_w-in_h), in_w*{x2_norm} - in_h/2))':y=0,scale=1080:960[bot]; "
             f"[top][bot]vstack=inputs=2,ass='{ass_escaped}'"
         )
 

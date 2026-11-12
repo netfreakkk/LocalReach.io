@@ -24,9 +24,9 @@ def extract_youtube_heatmap_hotspots(
 
     # Rolling window scoring: find windows of 35-55s with the highest average retention
     hotspots = []
-    step_size = max(1, len(points) // 40) # sample windows across timeline
+    step_size = max(1, len(points) // 60) # sample windows across timeline
 
-    for i in range(0, len(points)):
+    for i in range(0, len(points), step_size):
         start_t = points[i]["start_time"]
         for j in range(i + 1, len(points)):
             end_t = points[j]["end_time"]

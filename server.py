@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Ensure utf-8 output on Windows console
 if sys.stdout:
@@ -30,8 +30,29 @@ app = FastAPI(title="ScaleReach.ai Local Clone")
 # Serve exported videos statically
 app.mount("/exports", StaticFiles(directory=str(EXPORTS_DIR)), name="exports")
 
-# In-memory job state tracker with dual progress metrics
+# Thread-safe in-memory job state tracker
 jobs = {}
+jobs_lock = threading.Lock()
+
+def record_job(job_id: str, initial_data: dict):
+    with jobs_lock:
+        if len(jobs) > 50:
+            # Evict oldest completed/failed jobs
+            old_keys = list(jobs.keys())[:-40]
+            for k in old_keys:
+                jobs.pop(k, None)
+        jobs[job_id] = initial_data
+
+def set_job_field(job_id: str, **kwargs):
+    with jobs_lock:
+        if job_id in jobs:
+            jobs[job_id].update(kwargs)
+
+def get_job_copy(job_id: str):
+    with jobs_lock:
+        if job_id in jobs:
+            return dict(jobs[job_id])
+    return None
 
 class GenerationRequest(BaseModel):
     url: str
@@ -40,7 +61,7 @@ class GenerationRequest(BaseModel):
     model_name: str = "gemini-3.1-flash-lite"
     gemini_api_key: str = ""
     force_local: bool = False
-    clip_count: int = 5 # 0 = Auto (All Hotspots), 3, 5, 8, 10, 12
+    clip_count: int = Field(default=5, ge=0, le=20) # 0 = Auto (All Hotspots), 3..20
 
 def process_video_pipeline(
     job_id: str,
@@ -195,11 +216,17 @@ def process_video_pipeline(
         job["secondary_message"] = str(e)
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
+        # Clean up temporary uploads to prevent disk exhaustion
+        if source_input and Path(source_input).parent == (TEMP_DIR / "uploads"):
+            try:
+                Path(source_input).unlink(missing_ok=True)
+            except Exception:
+                pass
 
 @app.post("/api/generate")
 def start_generation(req: GenerationRequest, background_tasks: BackgroundTasks):
     job_id = f"batch_{int(time.time())}"
-    jobs[job_id] = {
+    record_job(job_id, {
         "job_id": job_id,
         "status": "processing",
         "current_step": 1,
@@ -211,7 +238,7 @@ def start_generation(req: GenerationRequest, background_tasks: BackgroundTasks):
         "video_title": "",
         "created_at": time.time(),
         "results": None
-    }
+    })
     background_tasks.add_task(
         process_video_pipeline,
         job_id,
@@ -247,7 +274,7 @@ async def upload_and_generate(
     with open(saved_file, "wb") as buffer:
         shutil.copyfileobj(video_file.file, buffer)
 
-    jobs[job_id] = {
+    record_job(job_id, {
         "job_id": job_id,
         "status": "processing",
         "current_step": 1,
@@ -259,7 +286,7 @@ async def upload_and_generate(
         "video_title": Path(video_file.filename).stem,
         "created_at": time.time(),
         "results": None
-    }
+    })
 
     background_tasks.add_task(
         process_video_pipeline,
@@ -295,7 +322,8 @@ def find_export_by_job_id(job_id: str):
 
 @app.get("/api/status/{job_id}")
 def get_status(job_id: str):
-    if job_id not in jobs:
+    active_job = get_job_copy(job_id)
+    if not active_job:
         folder, rel_url = find_export_by_job_id(job_id)
         if folder:
             meta_file = folder / "metadata.json"
@@ -314,7 +342,7 @@ def get_status(job_id: str):
                 "results": data
             }
         raise HTTPException(status_code=404, detail="Job not found")
-    return jobs[job_id]
+    return active_job
 
 @app.get("/api/history")
 def get_history():

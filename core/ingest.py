@@ -63,10 +63,13 @@ def download_video(
 
         if not metadata:
             cap = cv2.VideoCapture(str(cached_master))
-            fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
-            duration = int(frame_count / fps) if fps > 0 else 0
-            cap.release()
+            try:
+                fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+                frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+                duration = int(frame_count / fps) if fps > 0 else 0
+            finally:
+                cap.release()
+
             metadata = {
                 "title": f"Cached Video ({cache_id})",
                 "channel": "YouTube (Cached)",
@@ -98,19 +101,31 @@ def download_video(
         return master_dest, proxy_dest, metadata
 
     # ==========================================
-    # 2. SOURCE IS LOCAL FILE
+    # 2. SOURCE IS LOCAL FILE (Secured)
     # ==========================================
-    source_path = Path(source)
+    source_path = Path(source).resolve()
+    uploads_dir = (DOWNLOADS_DIR.parent / "temp" / "uploads").resolve()
+    
     if source_path.is_file() and source_path.exists():
+        # Security: restrict local file ingestion to the authorized temp/uploads folder
+        try:
+            source_path.relative_to(uploads_dir)
+        except ValueError:
+            raise ValueError(
+                "Access denied: Local files must be uploaded securely via the web dashboard (/api/upload-and-generate)."
+            )
+
         if progress_callback:
             progress_callback(30.0, f"Caching local video: {source_path.name}...")
 
         shutil.copy2(source_path, cached_master)
         cap = cv2.VideoCapture(str(cached_master))
-        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
-        duration = int(frame_count / fps) if fps > 0 else 0
-        cap.release()
+        try:
+            fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+            duration = int(frame_count / fps) if fps > 0 else 0
+        finally:
+            cap.release()
 
         metadata = {
             "title": source_path.stem.replace("_", " ").title(),

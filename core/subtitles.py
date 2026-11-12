@@ -2,6 +2,12 @@ import re
 from pathlib import Path
 from faster_whisper import WhisperModel
 
+try:
+    from indic_transliteration import sanscript
+    HAS_SANSCRIPT = True
+except ImportError:
+    HAS_SANSCRIPT = False
+
 def clean_to_latin(text: str) -> str:
     """
     Strictly enforces English and Romanized Hinglish (Latin alphabet only).
@@ -11,9 +17,8 @@ def clean_to_latin(text: str) -> str:
         return ""
     
     # If Devanagari characters are present, transliterate to Latin Hinglish
-    if re.search(r'[\u0900-\u097F]', text):
+    if HAS_SANSCRIPT and re.search(r'[\u0900-\u097F]', text):
         try:
-            from indic_transliteration import sanscript
             text = sanscript.transliterate(text, sanscript.DEVANAGARI, sanscript.ITRANS)
         except Exception:
             pass
@@ -23,13 +28,14 @@ def clean_to_latin(text: str) -> str:
     return text
 
 def format_ass_time(seconds: float) -> str:
-    """Converts seconds float to standard ASS timestamp format H:MM:SS.cc"""
-    hrs = int(seconds // 3600)
-    mins = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    centis = int(round((seconds - int(seconds)) * 100))
-    if centis >= 100:
-        centis = 99
+    """Converts seconds float to standard ASS timestamp format H:MM:SS.cc with proper rollover."""
+    total_centis = int(round(max(0.0, seconds) * 100))
+    centis = total_centis % 100
+    total_secs = total_centis // 100
+    secs = total_secs % 60
+    total_mins = total_secs // 60
+    mins = total_mins % 60
+    hrs = total_mins // 60
     return f"{hrs}:{mins:02d}:{secs:02d}.{centis:02d}"
 
 def extract_word_timestamps(audio_path: Path, model_size: str = "base", task: str = "translate") -> list[dict]:
@@ -165,7 +171,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     # Persistent Top Hook Pill for the duration of the clip
     if hook_banner:
-        clean_hook = hook_banner.replace("{", "").replace("}", "").upper().strip()
+        clean_hook = re.sub(r'[\r\n\\]', ' ', hook_banner).replace("{", "").replace("}", "").upper().strip()
         # Display the sleek top banner with vibrant bullet accent
         lines.append(f"Dialogue: 0,0:00:00.00,0:01:10.00,TopHookPill,,0,0,0,,  {{\\c{highlight_color}}}● {{\\c&H00FFFFFF&}}{clean_hook}  ")
 
@@ -181,7 +187,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             
             formatted_words = []
             for idx, w in enumerate(chunk):
-                raw_w = w["word"].replace("{", "").replace("}", "")
+                raw_w = re.sub(r'[\r\n\\]', '', w["word"]).replace("{", "").replace("}", "")
                 if idx == active_idx:
                     # Highlight active word with scale pop
                     formatted_words.append(f"{{\\c{highlight_color}\\fscx114\\fscy114}}{raw_w}{{\\c&H00FFFFFF&\\fscx100\\fscy100}}")

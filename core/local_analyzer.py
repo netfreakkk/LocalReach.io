@@ -180,10 +180,17 @@ def analyze_video_locally(
             if len(chosen) >= target_clips:
                 break
 
-    # If fewer than target_clips, fill with remaining best
+    # If fewer than target_clips, fill with remaining non-colliding candidates (relaxed 10s gap)
     if len(chosen) < target_clips and candidates:
         for cand in candidates:
-            if cand not in chosen:
+            if cand in chosen:
+                continue
+            overlaps = False
+            for c in chosen:
+                if not (cand["end_seconds"] + 10.0 <= c["start_seconds"] or cand["start_seconds"] >= c["end_seconds"] + 10.0):
+                    overlaps = True
+                    break
+            if not overlaps:
                 chosen.append(cand)
                 if len(chosen) >= target_clips:
                     break

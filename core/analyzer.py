@@ -71,17 +71,18 @@ def analyze_video_moments(
     print(f"[*] Uploading proxy video ({proxy_path.name}) to Gemini Multimodal AI...")
     uploaded_file = client.files.upload(file=str(proxy_path))
 
-    while uploaded_file.state.name == "PROCESSING":
-        print("    Waiting for Gemini to process proxy video...")
-        time.sleep(3)
-        uploaded_file = client.files.get(name=uploaded_file.name)
+    try:
+        while uploaded_file.state.name == "PROCESSING":
+            print("    Waiting for Gemini to process proxy video...")
+            time.sleep(3)
+            uploaded_file = client.files.get(name=uploaded_file.name)
 
-    if uploaded_file.state.name != "ACTIVE":
-        raise RuntimeError(f"Video file processing failed with state: {uploaded_file.state.name}")
+        if uploaded_file.state.name != "ACTIVE":
+            raise RuntimeError(f"Video file processing failed with state: {uploaded_file.state.name}")
 
-    print(f"[*] Watching video with {model_name} and detecting {target_clips} narrative-complete viral hooks...")
-    
-    prompt = f"""
+        print(f"[*] Watching video with {model_name} and detecting {target_clips} narrative-complete viral hooks...")
+        
+        prompt = f"""
     You are an elite short-form video producer and algorithm engineer (ScaleReach & OpusClip).
     Watch and listen to this entire video to extract EXACTLY {target_clips} of the MOST ENGAGING, completely self-contained viral moments (35 to 55 seconds each).
 
@@ -121,56 +122,52 @@ def analyze_video_moments(
     - yt_studio_tags: 15 comma-separated high-intent search queries.
     """
 
-    candidate_models = [model_name, "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-3.8-flash"]
-    last_err = None
+        candidate_models = [model_name, "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-3.8-flash"]
+        last_err = None
 
-    for m in candidate_models:
-        try:
-            print(f"    Analyzing with model '{m}' (target: {target_clips} clips)...")
-            response = client.models.generate_content(
-                model=m,
-                contents=[uploaded_file, prompt],
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=VideoAnalysisResult,
-                    temperature=0.3
-                )
-            )
+        for m in candidate_models:
             try:
-                client.files.delete(name=uploaded_file.name)
-            except Exception:
-                pass
+                print(f"    Analyzing with model '{m}' (target: {target_clips} clips)...")
+                response = client.models.generate_content(
+                    model=m,
+                    contents=[uploaded_file, prompt],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=VideoAnalysisResult,
+                        temperature=0.3
+                    )
+                )
 
-            result = VideoAnalysisResult.model_validate_json(response.text)
-            
-            # Post-process: Filter any overlapping clips
-            filtered_clips = []
-            for c in sorted(result.clips, key=lambda x: x.viral_score, reverse=True):
-                overlaps = False
-                for f in filtered_clips:
-                    # Discard only if collision within 10s
-                    if not (c.end_seconds + 10.0 <= f.start_seconds or c.start_seconds >= f.end_seconds + 10.0):
-                        overlaps = True
-                        break
-                if not overlaps:
-                    filtered_clips.append(c)
+                result = VideoAnalysisResult.model_validate_json(response.text)
+                
+                # Post-process: Filter any overlapping clips
+                filtered_clips = []
+                for c in sorted(result.clips, key=lambda x: x.viral_score, reverse=True):
+                    overlaps = False
+                    for f in filtered_clips:
+                        # Discard only if collision within 10s
+                        if not (c.end_seconds + 10.0 <= f.start_seconds or c.start_seconds >= f.end_seconds + 10.0):
+                            overlaps = True
+                            break
+                    if not overlaps:
+                        filtered_clips.append(c)
 
-            # Sort by timeline or score, and re-index sequentially 1..N
-            for idx, c in enumerate(filtered_clips, start=1):
-                c.clip_number = idx
+                # Sort by timeline or score, and re-index sequentially 1..N
+                for idx, c in enumerate(filtered_clips, start=1):
+                    c.clip_number = idx
 
-            result.clips = filtered_clips
-            return result
+                result.clips = filtered_clips
+                return result
 
-        except Exception as e:
-            last_err = e
-            print(f"    Model '{m}' attempt returned: {e}. Trying fallback...")
-            continue
-
-    try:
-        client.files.delete(name=uploaded_file.name)
-    except Exception:
-        pass
+            except Exception as e:
+                last_err = e
+                print(f"    Model '{m}' attempt returned: {e}. Trying fallback...")
+                continue
+    finally:
+        try:
+            client.files.delete(name=uploaded_file.name)
+        except Exception:
+            pass
 
     print(f"    [!] Gemini API failed ({last_err}). Seamlessly falling back to Local AI Engine...")
     return analyze_video_moments(proxy_path, video_title=video_title, force_local=True, target_clips=target_clips)

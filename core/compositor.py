@@ -55,16 +55,14 @@ def render_vertical_clip(
     actual_start = clip.start_seconds + start_offset
     actual_duration = max(5.0, effective_duration - start_offset)
 
-    # Adjust word timestamps relative to the trimmed start
+    # Adjust word timestamps relative to the trimmed start without dropping opening words
     aligned_words = []
     for w in words:
-        new_start = w["start"] - start_offset
-        new_end = w["end"] - start_offset
-        if new_start >= 0.0 and new_start < actual_duration:
+        if w["end"] > start_offset and w["start"] < (start_offset + actual_duration):
             aligned_words.append({
                 "word": w["word"],
-                "start": max(0.0, new_start),
-                "end": min(actual_duration, new_end)
+                "start": max(0.0, round(w["start"] - start_offset, 3)),
+                "end": min(actual_duration, round(w["end"] - start_offset, 3))
             })
 
     # Slice exact speech-bounded video segment
@@ -121,11 +119,12 @@ def render_vertical_clip(
             render_cmd,
             cwd=str(output_dir),
             check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            capture_output=True,
+            text=True
         )
-    except subprocess.CalledProcessError:
-        print("  [!] NVENC render hit an issue, falling back to CPU libx264...")
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr[:200] if e.stderr else "unknown error"
+        print(f"  [!] NVENC render hit an issue ({err_msg}), falling back to CPU libx264...")
         cpu_render_cmd = [
             ffmpeg_bin, "-y",
             "-i", temp_slice.name,
@@ -141,8 +140,8 @@ def render_vertical_clip(
             cpu_render_cmd,
             cwd=str(output_dir),
             check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            capture_output=True,
+            text=True
         )
 
     # Cleanup temp intermediates

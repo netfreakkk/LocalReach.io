@@ -334,12 +334,28 @@
       }
     }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+      });
+    }
+
     function handleFileSelected(event) {
       const file = event.target.files[0];
       if (file) {
         selectedFile = file;
         const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-        document.getElementById("fileChosenText").innerHTML = `✓ Selected: <strong class="text-white">${file.name}</strong> (${sizeMb} MB)`;
+        const container = document.getElementById("fileChosenText");
+        container.textContent = "";
+        const check = document.createTextNode("✓ Selected: ");
+        const strong = document.createElement("strong");
+        strong.className = "text-white";
+        strong.textContent = file.name;
+        const size = document.createTextNode(` (${sizeMb} MB)`);
+        container.appendChild(check);
+        container.appendChild(strong);
+        container.appendChild(size);
       }
     }
 
@@ -579,7 +595,7 @@
           <div class="p-4 space-y-3 flex-1 flex flex-col justify-between">
             <div>
               <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Burned Hook</span>
-              <p class="font-bold text-xs text-white line-clamp-1">${clip.hook_banner}</p>
+              <p class="font-bold text-xs text-white line-clamp-1">${escapeHtml(clip.hook_banner)}</p>
             </div>
 
             <div class="space-y-1.5 pt-2">
@@ -592,7 +608,7 @@
               <button onclick="copyToClipboard('${escapeJs(clip.yt_studio_tags.join(', '))}', this)" class="w-full text-xs font-semibold py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg flex items-center justify-center space-x-1 transition">
                 <span>📋</span> <span>Copy YT Studio Tags</span>
               </button>
-              <a href="${videoSrc}" download class="w-full text-xs font-bold py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center space-x-1 transition block text-center">
+              <a href="${encodeURI(videoSrc)}" download class="w-full text-xs font-bold py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center space-x-1 transition block text-center">
                 <span>⬇️</span> <span>Download 9:16 MP4</span>
               </a>
             </div>
