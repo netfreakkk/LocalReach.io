@@ -83,7 +83,7 @@ def analyze_video_moments(
         print(f"[*] Watching video with {model_name} and detecting {target_clips} narrative-complete viral hooks...")
         
         prompt = f"""
-    You are an elite short-form video producer and algorithm engineer (ScaleReach & OpusClip).
+    You are an elite short-form video producer and algorithm engineer (LocalReach.io & OpusClip).
     Watch and listen to this entire video to extract EXACTLY {target_clips} of the MOST ENGAGING, completely self-contained viral moments (35 to 55 seconds each).
 
     {hotspot_context_str}

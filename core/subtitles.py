@@ -149,7 +149,7 @@ def generate_ass_script(
     chunk_size: int = 3
 ) -> Path:
     """
-    Builds a professional Hormozi/ScaleReach style .ass subtitle script
+    Builds a professional Hormozi/LocalReach.io style .ass subtitle script
     with a sleek modern Top Hook Pill and word-by-word karaoke pop effects.
     """
     # Modern Top Hook Pill: Sleek translucent dark glass pill with accent badge & crisp typography

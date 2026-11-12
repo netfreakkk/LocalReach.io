@@ -1,4 +1,4 @@
-# ⚡ ScaleReach.ai Local Studio (AI Shorts & Reels Engine)
+# ⚡ LocalReach.io (AI Shorts & Reels Studio)
 
 A local-first, GPU-accelerated video repurposing engine powered by **Google Gemini Multimodal AI**, **OpenCV Haar Cascade Face Tracking**, **Faster-Whisper**, and **NVIDIA RTX NVENC**.
 

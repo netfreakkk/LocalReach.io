@@ -25,7 +25,7 @@ from core.analyzer import analyze_video_moments
 from core.compositor import render_vertical_clip
 from core.post_pack import write_post_pack
 
-app = FastAPI(title="ScaleReach.ai Local Clone")
+app = FastAPI(title="LocalReach.io")
 
 # Serve exported videos statically
 app.mount("/exports", StaticFiles(directory=str(EXPORTS_DIR)), name="exports")
@@ -374,7 +374,7 @@ def index():
     html_path = BASE_DIR / "static" / "index.html"
     if html_path.exists():
         return html_path.read_text(encoding="utf-8")
-    return "<h1>ScaleReach.ai Clone Server Running</h1>"
+    return "<h1>LocalReach.io Server Running</h1>"
 
 if __name__ == "__main__":
     import uvicorn

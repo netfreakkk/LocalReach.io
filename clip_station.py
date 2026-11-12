@@ -28,7 +28,7 @@ def run_pipeline(
     force_local: bool = False
 ):
     print("=" * 65)
-    print("🎬 SCALEREACH.AI LOCAL CLONE — SHORT-FORM GENERATION ENGINE")
+    print("🎬 LOCALREACH.IO — SHORT-FORM GENERATION ENGINE")
     print(f"Hardware Acceleration (RTX 4050 NVENC): {'ACTIVE' if HAS_NVENC else 'CPU FALLBACK'}")
     print(f"Reframing Style: {style.upper()} | Subtitle Color: {highlight_color}")
     print(f"AI Engine: {'100% LOCAL (Zero API Key)' if force_local or not GEMINI_API_KEY else 'Gemini Flash'}")
@@ -99,7 +99,7 @@ def run_pipeline(
         shutil.rmtree(work_dir, ignore_errors=True)
 
 def main():
-    parser = argparse.ArgumentParser(description="ScaleReach.ai Local Clone — Video Generation Engine")
+    parser = argparse.ArgumentParser(description="LocalReach.io — Video Generation Engine")
     parser.add_argument("source", help="YouTube URL or local video file path")
     parser.add_argument(
         "--style",
